@@ -1,4 +1,4 @@
-package com.wfh.sharknet
+package com.WFH.sharknet
 
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
