@@ -1,25 +1,91 @@
-# movies-back-end
-# Getting Started
+# Movies Shakers
 
-### Reference Documentation
-For further reference, please consider the following sections:
 
-* [Official Gradle documentation](https://docs.gradle.org)
-* [Spring Boot Gradle Plugin Reference Guide](https://docs.spring.io/spring-boot/docs/2.2.7.RELEASE/gradle-plugin/reference/html/)
-* [Coroutines section of the Spring Framework Documentation](https://docs.spring.io/spring/docs/5.2.6.RELEASE/spring-framework-reference/languages.html#coroutines)
-* [Spring Web](https://docs.spring.io/spring-boot/docs/2.2.7.RELEASE/reference/htmlsingle/#boot-features-developing-web-applications)
-* [Spring Boot DevTools](https://docs.spring.io/spring-boot/docs/2.2.7.RELEASE/reference/htmlsingle/#using-boot-devtools)
-* [Spring Data MongoDB](https://docs.spring.io/spring-boot/docs/2.2.7.RELEASE/reference/htmlsingle/#boot-features-mongodb)
+## Endpoint
 
-### Guides
-The following guides illustrate how to use some features concretely:
+### Search by title
 
-* [Building a RESTful Web Service](https://spring.io/guides/gs/rest-service/)
-* [Serving Web Content with Spring MVC](https://spring.io/guides/gs/serving-web-content/)
-* [Building REST services with Spring](https://spring.io/guides/tutorials/bookmarks/)
-* [Accessing Data with MongoDB](https://spring.io/guides/gs/accessing-data-mongodb/)
+```
+GET {{api-url}}/movies?title=[String]&page=[Int]&size=[Long]
+```
 
-### Additional Links
-These additional references should also help you:
+* title = Required
+* page = Optional default value is 0
+* size = Optional default value is 10
 
-* [Gradle Build Scans – insights for your project's build](https://scans.gradle.com#gradle)
+#### Examples
+
+```
+GET {{api-url}}/movies?title=superman
+GET {{api-url}}/movies?title=superman&page=1
+GET {{api-url}}/movies?title=superman&size=5
+GET {{api-url}}/movies?title=superman&page=1&size=5
+```
+
+### Search with filters
+
+```
+GET {{api-url}}/movies?genres=[Array<String>]&sort=[Array<String>]&page=[Int]&size=[Long]
+```
+
+* genres = Optional default value is empty array
+    * You can choose one or more fields separated by commas.
+* sort = Optional default value is empty array
+    * The sort with the following fields. You can choose one or more fields separated by commas. 
+        * id
+        * title
+        * year
+        * budget
+        * tmdbId
+    * You can request the descending order putting the character `-` before the field
+    * You can sort with many fields, for example: title and then by year [title,year]
+   
+* page = Optional default value is 0
+* size = Optional default value is 10
+
+####Examples
+
+```
+GET {{api-url}}/movies
+GET {{api-url}}/movies?page=1&size=20
+GET {{api-url}}/movies?genres=Action
+GET {{api-url}}/movies?genres=Action,Crime
+GET {{api-url}}/movies?sort=title
+GET {{api-url}}/movies?sort=title,-budget
+GET {{api-url}}/movies?page=1&size=20&sort=title,-budget&genres=Action
+```
+
+## Example object json
+
+```json
+[
+    {
+        "id": "6",
+        "title": "Heat",
+        "year": "1995-12-15",
+        "budget": 60000000,
+        "cover": "https://image.tmdb.org/t/p/w185/lbf2ueoiEfKIJr2qlT01zIEckbC.jpg",
+        "tmdbId": "949",
+        "genres": [
+            "Action",
+            "Crime",
+            "Thriller"
+        ]
+    },
+    {
+        "id": "20",
+        "title": "Money Train",
+        "year": "1995-11-21",
+        "budget": 68000000,
+        "cover": "https://image.tmdb.org/t/p/w185/jWBDz6Mf9aQVBiUS76JQsEhvoJl.jpg",
+        "tmdbId": "11517",
+        "genres": [
+            "Action",
+            "Comedy",
+            "Crime",
+            "Drama",
+            "Thriller"
+        ]
+    }
+]
+```
