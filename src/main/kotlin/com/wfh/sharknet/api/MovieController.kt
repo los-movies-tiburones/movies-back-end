@@ -7,7 +7,6 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Flux
-import reactor.core.publisher.Mono
 
 @RestController
 @RequestMapping("movies")
@@ -23,7 +22,7 @@ class MovieController constructor(private val movieService: MovieService) {
     @GetMapping
     fun findAll(
         @RequestParam(defaultValue = "") genres: List<String>,
-        @RequestParam(defaultValue = "") sort: Array<String>,
+        @RequestParam(defaultValue = "\"\"") sort: String,
         @RequestParam(defaultValue = "0") page: Int,
         @RequestParam(defaultValue = "10") size: Long
     ): Flux<Movie> = movieService.findAll(genres, sort, page, size)

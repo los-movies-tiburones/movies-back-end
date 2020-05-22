@@ -30,16 +30,15 @@ GET https://movie-sharkers.herokuapp.com/movies?genres=[Array<String>]&sort=[Arr
 
 * genres = Optional default value is empty array
     * You can choose one or more fields separated by commas.
-* sort = Optional default value is empty array
-    * The sort with the following fields. You can choose one or more fields separated by commas. 
+* sort = Optional default value is empty string
+    * The following fields can be chosen: 
         * id
         * title
         * year
         * budget
         * tmdbId
     * You can request the descending order putting the character `-` before the field
-    * You can sort with many fields, for example: title and then by year [title,year]
-   
+    
 * page = Optional default value is 0
 * size = Optional default value is 10
 
@@ -51,8 +50,8 @@ GET https://movie-sharkers.herokuapp.com/movies?page=0&size=10
 GET https://movie-sharkers.herokuapp.com/movies?genres=Action
 GET https://movie-sharkers.herokuapp.com/movies?genres=Action,Crime
 GET https://movie-sharkers.herokuapp.com/movies?sort=title
-GET https://movie-sharkers.herokuapp.com/movies?sort=title,-budget
-GET https://movie-sharkers.herokuapp.com/movies?page=1&size=20&sort=title,-budget&genres=Action
+GET https://movie-sharkers.herokuapp.com/movies?sort=-budget
+GET https://movie-sharkers.herokuapp.com/movies?page=1&size=20&sort=title&genres=Action
 ```
 
 ## Example object json
