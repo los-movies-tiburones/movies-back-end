@@ -8,7 +8,7 @@ import reactor.core.publisher.Flux
 
 interface MovieService {
     fun findByTitle(title: String, page: Int, size: Long): Flux<Movie>
-    fun findAll(genres: List<String>, sort: Array<String>, page: Int, size: Long): Flux<Movie>
+    fun findAll(genres: List<String>, field: String, page: Int, size: Long): Flux<Movie>
 }
 
 @Service
@@ -20,9 +20,15 @@ class MovieServiceImp constructor(private val movieRepository: MovieRepository) 
             .skip(page * size)
             .take(size)
 
-    override fun findAll(genres: List<String>, sort: Array<String>, page: Int, size: Long): Flux<Movie> =
-        movieRepository.findAll(Sort.by(*sort))
-            .filter { movie -> genres.all { movie.genres.contains(it) } }
-            .skip(page * size)
-            .take(size)
+    override fun findAll(genres: List<String>, field: String, page: Int, size: Long): Flux<Movie> {
+        val fieldSort = if (field.length > 2 && field.startsWith('-'))
+            Sort.by(Sort.Direction.DESC, field.substring(1))
+        else
+            Sort.by(Sort.Direction.ASC,  field)
+
+        return movieRepository.findAll(fieldSort)
+                .filter { movie -> genres.all { movie.genres.contains(it) } }
+                .skip(page * size)
+                .take(size)
+    }
 }

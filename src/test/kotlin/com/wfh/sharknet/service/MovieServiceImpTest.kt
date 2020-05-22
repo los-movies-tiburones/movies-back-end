@@ -36,7 +36,7 @@ internal class MovieServiceImpTest {
         Mockito.`when`(movieRepository.findAll(any(Sort::class.java))).thenReturn(Flux.fromIterable(movies))
 
         val movieService = MovieServiceImp(movieRepository)
-        val expected = movieService.findAll(listOf(), arrayOf(), page, size).toIterable().toList()
+        val expected = movieService.findAll(listOf(), randomUUID().toString(), page, size).toIterable().toList()
         val actual = movies
                 .toFlux()
                 .skip(page * size)
