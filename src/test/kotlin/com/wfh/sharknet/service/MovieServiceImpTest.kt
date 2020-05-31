@@ -1,64 +1,89 @@
 package com.wfh.sharknet.service
 
+import com.nhaarman.mockitokotlin2.any
+import com.nhaarman.mockitokotlin2.eq
+import com.wfh.sharknet.dto.MovieDTO
 import com.wfh.sharknet.model.Movie
 import com.wfh.sharknet.repository.MovieRepository
 import org.junit.jupiter.api.Test
-import org.mockito.ArgumentMatchers.any
+import org.junit.jupiter.api.assertThrows
 import org.mockito.ArgumentMatchers.anyString
 import org.mockito.Mockito
 import org.mockito.Mockito.mock
-import reactor.core.publisher.Flux
-import reactor.kotlin.core.publisher.toFlux
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Sort
+import org.springframework.test.util.ReflectionTestUtils
+import org.springframework.web.server.ResponseStatusException
+import java.util.Optional
 import java.util.UUID.randomUUID
 import kotlin.random.Random
-import org.springframework.data.domain.Sort
-
 
 internal class MovieServiceImpTest {
-
+    
     private val movieRepository: MovieRepository = mock(MovieRepository::class.java)
-
+    
     @Test
     fun `it should show movies by title`() {
-        val moviesFlux: Flux<Movie> = Flux.empty()
-        Mockito.`when`(movieRepository.findByTitleContainsIgnoreCase(anyString())).thenReturn(moviesFlux)
-
+        val movies: List<MovieDTO> = listOf()
+        val pagination = PageRequest.of(0, 10)
+        val title = "Action"
+        
+        Mockito.`when`(movieRepository.findByTitleContainsIgnoreCase(anyString(), any())).thenReturn(movies)
+        
         val movieService = MovieServiceImp(movieRepository)
-        val expected = movieService.findByTitle(anyString(), 0, 10)
-        assert(moviesFlux.toIterable().toList() == expected.toIterable().toList())
+        val expected = movieService.findByTitle(title, pagination)
+        
+        assert(movies == expected)
     }
-
+    
     @Test
-    fun `it should show movies with filters`() {
-        val movies = generateMovies()
-        val page = 0
-        val size: Long = 10
-        Mockito.`when`(movieRepository.findAll(any(Sort::class.java))).thenReturn(Flux.fromIterable(movies))
-
+    fun `it should find 100 TopRating`() {
+        val movies: List<MovieDTO> = arrayListOf()
+        val pagination = PageRequest.of(0, 10)
+        
+        Mockito.`when`(movieRepository.findByRatingSizeGreaterThanOrderByAverageRatingDesc(eq(10), any())).thenReturn(movies)
+        
         val movieService = MovieServiceImp(movieRepository)
-        val expected = movieService.findAll(listOf(), randomUUID().toString(), page, size).toIterable().toList()
-        val actual = movies
-                .toFlux()
-                .skip(page * size)
-                .take(size)
-                .toIterable().toList()
-
+        val expected = movieService.findTopRating(pagination)
+        
+        assert(movies == expected)
+    }
+    
+    
+    @Test
+    fun `it should find a movie by id`() {
+        val movie: Optional<Movie> = Optional.empty()
+        val id = Random.nextInt(0, 100)
+        
+        Mockito.`when`(movieRepository.findById(eq(id))).thenReturn(movie)
+        val movieService = MovieServiceImp(movieRepository)
+        
+        assertThrows<ResponseStatusException> { movieService.findById(id) }
+    }
+    
+    
+    @Test
+    fun `it should show all movies with filters`() {
+        val movies = mock(Page::class.java) as Page<*>?
+        val randomField = randomUUID().toString()
+        val pagination = PageRequest.of(0, 10, Sort.by(randomField))
+        Mockito.`when`(movieRepository.findAll(eq(pagination))).thenReturn(movies as Page<Movie>?)
+        
+        val movieService = MovieServiceImp(movieRepository)
+        assertThrows<ResponseStatusException> { movieService.findAll(arrayOf(), randomField, pagination) }
+    }
+    
+    @Test
+    fun `it should find top ten movies per genres`() {
+        val genres: Set<String> = setOf("Action", "Drama")
+        val actual: Map<String, List<MovieDTO>?> = mapOf( "Action" to listOf() )
+        
+        val movieService = MovieServiceImp(movieRepository)
+        ReflectionTestUtils.setField(movieService, "topMovies", actual)
+    
+        val expected = movieService.findTopTenMoviesPerGenres(genres)
         assert(actual == expected)
     }
-
-
-    private fun generateMovies(): Iterable<Movie> {
-        return (1..Random.nextInt(0, 10)).map {
-            Movie(
-                    id = randomUUID().toString(),
-                    title = randomUUID().toString(),
-                    year = randomUUID().toString(),
-                    budget = Random.nextInt(),
-                    cover = randomUUID().toString(),
-                    tmdbId = randomUUID().toString(),
-                    genres = setOf()
-            )
-        } .asIterable()
-    }
-
+    
 }
