@@ -26,9 +26,14 @@ configurations {
 
 repositories {
     mavenCentral()
+    jcenter()
 }
 
 dependencies {
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.9.8")
+    implementation("com.auth0:java-jwt:3.4.0")
+    implementation("org.springframework.boot:spring-boot-starter-security")
+    implementation("io.springfox:springfox-bean-validators:2.9.2")
     implementation("io.springfox.ui:springfox-swagger-ui-rfc6570:1.0.0")
     implementation("io.springfox:springfox-swagger2:2.9.2")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
@@ -41,7 +46,7 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-test") {
         exclude(group = "org.junit.vintage", module = "junit-vintage-engine")
     }
-    testImplementation("com.nhaarman.mockitokotlin2:mockito-kotlin:2.2.0")
+    testImplementation ("com.nhaarman.mockitokotlin2:mockito-kotlin:2.2.0")
 }
 
 tasks.withType<Test> {

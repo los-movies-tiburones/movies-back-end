@@ -1,8 +1,10 @@
 package com.wfh.sharknet.service
 
 import com.wfh.sharknet.dto.MovieDTO
+import com.wfh.sharknet.dto.MovieDescriptionDTO
 import com.wfh.sharknet.mapper.toMovieDTO
-import com.wfh.sharknet.model.Movie
+import com.wfh.sharknet.mapper.toMovieDescriptionDTO
+import com.wfh.sharknet.model.Rating
 import com.wfh.sharknet.repository.MovieRepository
 import org.slf4j.LoggerFactory
 import org.springframework.cache.annotation.Cacheable
@@ -11,15 +13,17 @@ import org.springframework.data.domain.Sort
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.web.server.ResponseStatusException
+import java.time.Instant
 import javax.annotation.PostConstruct
 
 interface MovieService {
     fun findByTitle(title: String, pageRequest: PageRequest): List<MovieDTO>
     fun findAll(genres: Array<String>, field: String, pageRequest: PageRequest): List<MovieDTO>
-    fun findById(id: Int): Movie
+    fun findById(id: Int): MovieDescriptionDTO
     fun findTopRating(pageRequest: PageRequest): List<MovieDTO>
     fun findAllGenres(): List<String>
     fun findTopTenMoviesPerGenres(genres: Set<String>): Map<String, List<MovieDTO>?>
+    fun saveRating(rating: Rating, movieId: Int)
 }
 
 @Service
@@ -75,8 +79,22 @@ class MovieServiceImp constructor(private val movieRepository: MovieRepository):
         }
     }
 
-    override fun findById(id: Int): Movie =
-        movieRepository.findById(id).orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND) }
+    override fun findById(id: Int): MovieDescriptionDTO {
+        val movie = movieRepository.findById(id).orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND) }
+        val recommendations = if (movie.genres.isEmpty()) {
+            findTopRating(PageRequest.of(0, 5))
+        } else {
+            findTopTenMoviesPerGenres(movie.genres)
+                .flatMap { it.value?.asIterable() ?: emptyList() }
+                .distinctBy { it.id }
+                .filter { it.id != movie.id }
+                .sortedByDescending { it.averageRating }
+                .take(10)
+        }
+        
+        return movie.toMovieDescriptionDTO(recommendations)
+    }
+    
     
     @Cacheable(value = ["MovieServiceImp.findTopRating"], condition = "(#pageRequest.pageNumber + 1) * #pageRequest.pageSize <= 100")
     override fun findTopRating(pageRequest: PageRequest): List<MovieDTO> =
@@ -90,4 +108,21 @@ class MovieServiceImp constructor(private val movieRepository: MovieRepository):
         topMovies.keys.filter { genres.contains(it) }
             .map { it to topMovies[it] }
             .toMap()
+    
+    override fun saveRating(rating: Rating, movieId: Int) {
+        val movie = movieRepository
+            .findById(movieId)
+            .orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND) }
+        val currentRating = movie.ratings.find { it.userIdString == rating.userIdString }
+        if (currentRating != null) {
+            currentRating.value = rating.value
+            currentRating.timeStamp = Instant.now().epochSecond.toString()
+        } else {
+            movie.ratings.add(rating)
+            movie.ratingSize = movie.ratings.size.toShort()
+            movie.averageRating = movie.ratings.map { it.value }.average().toFloat()
+        }
+        movie.ratings.sortWith(Comparator { a, b -> a.timeStamp.toInt() - b.timeStamp.toInt() })
+        movieRepository.save(movie)
+    }
 }

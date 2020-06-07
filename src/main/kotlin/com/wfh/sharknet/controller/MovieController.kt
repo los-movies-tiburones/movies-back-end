@@ -1,13 +1,17 @@
 package com.wfh.sharknet.controller
 
 import com.wfh.sharknet.dto.MovieDTO
-import com.wfh.sharknet.model.Movie
+import com.wfh.sharknet.dto.MovieDescriptionDTO
+import com.wfh.sharknet.model.Rating
 import com.wfh.sharknet.service.MovieService
 import io.swagger.annotations.ApiOperation
 import org.springframework.data.domain.PageRequest
+import org.springframework.security.core.Authentication
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
@@ -40,7 +44,7 @@ class MovieController constructor(private val movieService: MovieService) {
     
     @GetMapping("{id}")
     @ApiOperation(value = "Find movie by id")
-    fun findById(@PathVariable id: Int): Movie = movieService.findById(id)
+    fun findById(@PathVariable id: Int): MovieDescriptionDTO = movieService.findById(id)
     
     @GetMapping("genres")
     @ApiOperation(value = "Find all genres available")
@@ -57,5 +61,25 @@ class MovieController constructor(private val movieService: MovieService) {
     @ApiOperation(value = "Find top 10 movies by genre and average rating descending", notes = "Only shows the first 10 movies per genre")
     fun findTopTenMoviesPerGenres(@RequestParam genres: Set<String>): Map<String, List<MovieDTO>?> =
         movieService.findTopTenMoviesPerGenres(genres)
+    
+    @GetMapping("recommendations")
+    @ApiOperation(value = "Top 5 movies recommended")
+    fun findRecommendations(authentication: Authentication): List<MovieDTO> =
+        movieService.findTopRating(PageRequest.of(0, 5))
+        
+    @PostMapping("{id}/ratings")
+    @ApiOperation(value = "Create new rating")
+    fun saveRating(
+        @PathVariable id: Int,
+        @RequestBody @PositiveOrZero @Max(5) rating: Float,
+        authentication: Authentication
+    ) = movieService.saveRating(
+            Rating(
+                userIdString = authentication.principal.toString(),
+                value = rating
+            ),
+            id
+        )
+    
 }
     
