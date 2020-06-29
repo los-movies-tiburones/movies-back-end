@@ -2,8 +2,8 @@ package com.wfh.sharknet.model
 
 import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.mapping.Document
-import org.springframework.data.mongodb.core.mapping.Field
-import java.sql.Timestamp
+import java.net.URI
+import java.time.Instant
 
 @Document
 data class Movie(
@@ -12,14 +12,14 @@ data class Movie(
     val title: String,
     val year: String,
     val budget: Int,
-    val cover: String,
+    val cover: URI,
     val tmdbId: Int,
-    val averageRating: Float,
+    var averageRating: Float,
     val overview: String,
     val runtime: Short,
     val genres: Set<String>,
-    val ratings: List<Rating>,
-    val ratingSize: Short,
+    val ratings: MutableList<Rating>,
+    var ratingSize: Short,
     val spokenLanguages: Iterable<SpokenLanguage>,
     val productionCountries: Iterable<ProductionCountry>,
     val productionCompanies: Iterable<ProductionCompany>,
@@ -32,9 +32,10 @@ data class SpokenLanguage(
 )
 
 data class Rating(
-    val userId: Int,
-    val value: Float,
-    val timeStamp: String
+    val userId: Int? = null,
+    val userIdString: String?,
+    var value: Float,
+    var timeStamp: String = Instant.now().epochSecond.toString()
 )
 
 data class ProductionCountry(
