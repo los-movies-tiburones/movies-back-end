@@ -1,5 +1,12 @@
 package com.wfh.sharknet.service
 
+import arrow.core.Either
+import arrow.core.None
+import arrow.core.Some
+import arrow.core.extensions.option.foldable.get
+import arrow.core.right
+import arrow.core.toOption
+import arrow.syntax.collections.flatten
 import com.wfh.sharknet.dto.MovieDTO
 import com.wfh.sharknet.dto.MovieDescriptionDTO
 import com.wfh.sharknet.mapper.toMovieDTO
@@ -7,19 +14,26 @@ import com.wfh.sharknet.mapper.toMovieDescriptionDTO
 import com.wfh.sharknet.model.Rating
 import com.wfh.sharknet.repository.MovieRepository
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
+import org.springframework.data.mongodb.core.query.where
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
+import org.springframework.web.client.RestTemplate
+import org.springframework.web.client.getForEntity
+import org.springframework.web.client.getForObject
 import org.springframework.web.server.ResponseStatusException
 import java.time.Instant
+import java.util.*
 import javax.annotation.PostConstruct
+import kotlin.Comparator
 
 interface MovieService {
     fun findByTitle(title: String, pageRequest: PageRequest): List<MovieDTO>
     fun findAll(genres: Array<String>, field: String, pageRequest: PageRequest): List<MovieDTO>
-    fun findById(id: Int): MovieDescriptionDTO
+    fun findById(id: Int): Either<Throwable, MovieDescriptionDTO>
     fun findTopRating(pageRequest: PageRequest): List<MovieDTO>
     fun findAllGenres(): List<String>
     fun findTopTenMoviesPerGenres(genres: Set<String>): Map<String, List<MovieDTO>?>
@@ -27,8 +41,14 @@ interface MovieService {
 }
 
 @Service
-class MovieServiceImp constructor(private val movieRepository: MovieRepository): MovieService {
+class MovieServiceImp constructor(
+    private val movieRepository: MovieRepository,
+    private val restTemplate: RestTemplate
+): MovieService {
     private val log = LoggerFactory.getLogger(javaClass)
+    
+    @Value("\${system.recommendations.movie.related}")
+    private lateinit var urlMovieRecommendations: String
     
     private lateinit var genres: List<String>
     private lateinit var topMovies: Map<String, List<MovieDTO>>
@@ -79,20 +99,23 @@ class MovieServiceImp constructor(private val movieRepository: MovieRepository):
         }
     }
 
-    override fun findById(id: Int): MovieDescriptionDTO {
-        val movie = movieRepository.findById(id).orElseThrow { ResponseStatusException(HttpStatus.NOT_FOUND) }
-        val recommendations = if (movie.genres.isEmpty()) {
-            findTopRating(PageRequest.of(0, 5))
+    override fun findById(id: Int): Either<ResponseStatusException, MovieDescriptionDTO> {
+        val optionMovie = movieRepository.findById(id)
+        return if (!optionMovie.isPresent) {
+            Either.left(ResponseStatusException(HttpStatus.NOT_FOUND))
         } else {
-            findTopTenMoviesPerGenres(movie.genres)
-                .flatMap { it.value?.asIterable() ?: emptyList() }
-                .distinctBy { it.id }
-                .filter { it.id != movie.id }
-                .sortedByDescending { it.averageRating }
-                .take(10)
+            val movie = optionMovie.get()
+            val recommendations: List<MovieDTO> = if (movie.genres.isEmpty()) {
+                findTopRating(PageRequest.of(0, 5))
+            } else {
+                restTemplate
+                    .getForObject<List<String>>(urlMovieRecommendations, movie.title)
+                    .map { movieRepository.findByTitle(it).get() }
+            }
+    
+            Either.right(movie.toMovieDescriptionDTO(recommendations))
         }
         
-        return movie.toMovieDescriptionDTO(recommendations)
     }
     
     

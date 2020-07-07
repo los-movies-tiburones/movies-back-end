@@ -1,5 +1,6 @@
 package com.wfh.sharknet.service
 
+import arrow.core.getOrElse
 import com.wfh.sharknet.repository.ApplicationUserRepository
 import org.springframework.security.core.userdetails.User
 import org.springframework.security.core.userdetails.UserDetails

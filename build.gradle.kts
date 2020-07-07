@@ -30,6 +30,8 @@ repositories {
 }
 
 dependencies {
+    implementation( "io.arrow-kt:arrow-core:0.10.4")
+    implementation( "io.arrow-kt:arrow-syntax:0.10.4")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.9.8")
     implementation("com.auth0:java-jwt:3.4.0")
     implementation("org.springframework.boot:spring-boot-starter-security")

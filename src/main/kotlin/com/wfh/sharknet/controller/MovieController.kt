@@ -1,11 +1,15 @@
 package com.wfh.sharknet.controller
 
+import arrow.core.getOrHandle
+import arrow.core.left
+import arrow.core.right
 import com.wfh.sharknet.dto.MovieDTO
 import com.wfh.sharknet.dto.MovieDescriptionDTO
 import com.wfh.sharknet.model.Rating
 import com.wfh.sharknet.service.MovieService
 import io.swagger.annotations.ApiOperation
 import org.springframework.data.domain.PageRequest
+import org.springframework.data.mongodb.core.query.where
 import org.springframework.security.core.Authentication
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.GetMapping
@@ -44,8 +48,9 @@ class MovieController constructor(private val movieService: MovieService) {
     
     @GetMapping("{id}")
     @ApiOperation(value = "Find movie by id")
-    fun findById(@PathVariable id: Int): MovieDescriptionDTO = movieService.findById(id)
-    
+    fun findById(@PathVariable id: Int): MovieDescriptionDTO =
+        movieService.findById(id).getOrHandle { throw it }
+        
     @GetMapping("genres")
     @ApiOperation(value = "Find all genres available")
     fun findAllGenres(): List<String> = movieService.findAllGenres()
