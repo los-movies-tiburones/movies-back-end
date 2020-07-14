@@ -1,34 +1,30 @@
 package com.wfh.sharknet.service
 
 import arrow.core.Either
-import arrow.core.None
-import arrow.core.Some
-import arrow.core.extensions.option.foldable.get
-import arrow.core.right
-import arrow.core.toOption
-import arrow.syntax.collections.flatten
+import arrow.core.extensions.set.foldable.find
 import com.wfh.sharknet.dto.MovieDTO
 import com.wfh.sharknet.dto.MovieDescriptionDTO
 import com.wfh.sharknet.mapper.toMovieDTO
 import com.wfh.sharknet.mapper.toMovieDescriptionDTO
+import com.wfh.sharknet.model.MovieFavorite
 import com.wfh.sharknet.model.Rating
+import com.wfh.sharknet.model.Review
+import com.wfh.sharknet.repository.ApplicationUserRepository
 import com.wfh.sharknet.repository.MovieRepository
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
-import org.springframework.data.mongodb.core.query.where
 import org.springframework.http.HttpStatus
+import org.springframework.security.core.userdetails.UsernameNotFoundException
 import org.springframework.stereotype.Service
 import org.springframework.web.client.RestTemplate
-import org.springframework.web.client.getForEntity
 import org.springframework.web.client.getForObject
 import org.springframework.web.server.ResponseStatusException
 import java.time.Instant
-import java.util.*
+import java.time.LocalDateTime
 import javax.annotation.PostConstruct
-import kotlin.Comparator
 
 interface MovieService {
     fun findByTitle(title: String, pageRequest: PageRequest): List<MovieDTO>
@@ -38,12 +34,17 @@ interface MovieService {
     fun findAllGenres(): List<String>
     fun findTopTenMoviesPerGenres(genres: Set<String>): Map<String, List<MovieDTO>?>
     fun saveRating(rating: Rating, movieId: Int)
+    fun saveReview(id: Int, review: Review): Either<Throwable, Review>
+    fun findFavorites(username: String): Set<MovieFavorite>
+    fun saveFavorite(id: Int, username: String): Either<Throwable, MovieFavorite>
+    fun deleteFavorite(id: Int, username: String): Either<Throwable, Boolean>
 }
 
 @Service
 class MovieServiceImp constructor(
     private val movieRepository: MovieRepository,
-    private val restTemplate: RestTemplate
+    private val restTemplate: RestTemplate,
+    private val applicationUserRepository: ApplicationUserRepository
 ): MovieService {
     private val log = LoggerFactory.getLogger(javaClass)
     
@@ -147,5 +148,83 @@ class MovieServiceImp constructor(
         }
         movie.ratings.sortWith(Comparator { a, b -> a.timeStamp.toInt() - b.timeStamp.toInt() })
         movieRepository.save(movie)
+    }
+    
+    override fun saveReview(id: Int, review: Review): Either<ResponseStatusException, Review> {
+        val optionMovie = movieRepository.findById(id)
+        return if (!optionMovie.isPresent) {
+            Either.left(ResponseStatusException(HttpStatus.NOT_FOUND))
+        } else {
+            val movie = optionMovie.get()
+            val currentReview = movie.reviews.find { it.username == review.username }
+            if (currentReview != null) {
+                currentReview.date = LocalDateTime.now()
+                currentReview.text = review.text
+            } else {
+                movie.reviews.add(review)
+            }
+            movieRepository.save(movie)
+            Either.right(review)
+        }
+    }
+    
+    override fun findFavorites(username: String): Set<MovieFavorite> {
+        val user = applicationUserRepository.findByUsername(username)
+        return user?.moviesFavorites ?: throw UsernameNotFoundException(username)
+    }
+    
+    override fun saveFavorite(id: Int, username: String): Either<Throwable, MovieFavorite> {
+        val movie = movieRepository.findById(id)
+        val optionMovie = movieRepository.findById(id)
+        return if (!optionMovie.isPresent) {
+            Either.left(ResponseStatusException(HttpStatus.NOT_FOUND))
+        } else {
+            val user = applicationUserRepository.findByUsername(username)
+            return if (user != null) {
+                val movieFavoriteCurrent = user.moviesFavorites.find { it.id == id }
+                return if (movieFavoriteCurrent.isEmpty()) {
+                    val movieFavorite = MovieFavorite(
+                        id = id,
+                        added = LocalDateTime.now()
+                    )
+                    val newSet = user.moviesFavorites.toMutableSet()
+                    newSet.add(movieFavorite)
+                    val newUser = user.copy(
+                        moviesFavorites = newSet.toSet()
+                    )
+                    applicationUserRepository.save(newUser)
+                    Either.right(movieFavorite)
+                } else {
+                    Either.left(ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "movie is already added"))
+                }
+            } else {
+                Either.left(UsernameNotFoundException(username))
+            }
+        }
+    }
+    
+    override fun deleteFavorite(id: Int, username: String): Either<Throwable, Boolean> {
+        val movie = movieRepository.findById(id)
+        val optionMovie = movieRepository.findById(id)
+        return if (!optionMovie.isPresent) {
+            Either.left(ResponseStatusException(HttpStatus.NOT_FOUND))
+        } else {
+            val user = applicationUserRepository.findByUsername(username)
+            return if (user != null) {
+                val newSet = user.moviesFavorites.toMutableSet()
+                val removed = newSet.removeIf { it.id == id }
+                return if (removed) {
+                    val newUser = user.copy(
+                        moviesFavorites = newSet.toSet()
+                    )
+                    applicationUserRepository.save(newUser)
+                    Either.right(removed)
+                } else {
+                    Either.left(ResponseStatusException(HttpStatus.NOT_FOUND))
+                }
+            } else {
+                Either.left(UsernameNotFoundException(username))
+            }
+        }
     }
 }

@@ -1,17 +1,17 @@
 package com.wfh.sharknet.controller
 
 import arrow.core.getOrHandle
-import arrow.core.left
-import arrow.core.right
 import com.wfh.sharknet.dto.MovieDTO
 import com.wfh.sharknet.dto.MovieDescriptionDTO
+import com.wfh.sharknet.model.MovieFavorite
 import com.wfh.sharknet.model.Rating
+import com.wfh.sharknet.model.Review
 import com.wfh.sharknet.service.MovieService
 import io.swagger.annotations.ApiOperation
 import org.springframework.data.domain.PageRequest
-import org.springframework.data.mongodb.core.query.where
 import org.springframework.security.core.Authentication
 import org.springframework.validation.annotation.Validated
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -19,7 +19,9 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import java.time.LocalDateTime
 import javax.validation.constraints.Max
+import javax.validation.constraints.NotEmpty
 import javax.validation.constraints.Positive
 import javax.validation.constraints.PositiveOrZero
 import javax.validation.constraints.Size
@@ -86,5 +88,45 @@ class MovieController constructor(private val movieService: MovieService) {
             id
         )
     
+    @PostMapping("{id}/reviews")
+    @ApiOperation(value = "Create new review")
+    fun saveReview(
+        @PathVariable id: Int,
+        @RequestBody @NotEmpty rating: String,
+        authentication: Authentication
+    ):Review = movieService.saveReview(
+        id,
+        Review(
+            username = authentication.principal.toString(),
+            text = rating,
+            date = LocalDateTime.now()
+        ))
+        .getOrHandle { throw it }
+
+    @GetMapping("/favorites")
+    @ApiOperation(value = "Find all favorite movies")
+    fun findFavorites(
+        authentication: Authentication
+    ): Set<MovieFavorite> = movieService.findFavorites(authentication.principal.toString())
+    
+    @PostMapping("{id}/favorites")
+    @ApiOperation(value = "Find all favorite movies")
+    fun saveFavorite(
+        @PathVariable id: Int,
+        authentication: Authentication
+    ): MovieFavorite =
+        movieService
+            .saveFavorite(id, authentication.principal.toString())
+            .getOrHandle { throw it }
+    
+    @DeleteMapping("{id}/favorites")
+    @ApiOperation(value = "Find all favorite movies")
+    fun findFavorites3(
+        @PathVariable id: Int,
+        authentication: Authentication
+    ): Boolean =
+        movieService
+            .deleteFavorite(id, authentication.principal.toString())
+            .getOrHandle { throw it }
 }
     

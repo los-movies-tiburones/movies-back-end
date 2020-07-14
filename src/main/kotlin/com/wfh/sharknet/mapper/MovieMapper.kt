@@ -23,6 +23,7 @@ fun Movie.toMovieDescriptionDTO(recommendations: Iterable<MovieDTO>): MovieDescr
         budget = this.budget,
         cover = this.cover,
         tmdbId = this.tmdbId,
+        videoId = this.videoId,
         averageRating = this.averageRating,
         overview = this.overview,
         runtime = this.runtime,
@@ -33,5 +34,6 @@ fun Movie.toMovieDescriptionDTO(recommendations: Iterable<MovieDTO>): MovieDescr
         productionCountries = this.productionCountries,
         productionCompanies = this.productionCompanies,
         tags = this.tags,
+        reviews = this.reviews,
         recommendations = recommendations
     )

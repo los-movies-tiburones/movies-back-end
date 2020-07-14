@@ -4,6 +4,7 @@ import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.mapping.Document
 import java.net.URI
 import java.time.Instant
+import java.time.LocalDateTime
 
 @Document
 data class Movie(
@@ -14,6 +15,7 @@ data class Movie(
     val budget: Int,
     val cover: URI,
     val tmdbId: Int,
+    val videoId: String?,
     var averageRating: Float,
     val overview: String,
     val runtime: Short,
@@ -23,7 +25,14 @@ data class Movie(
     val spokenLanguages: Iterable<SpokenLanguage>,
     val productionCountries: Iterable<ProductionCountry>,
     val productionCompanies: Iterable<ProductionCompany>,
-    val tags: Iterable<Tag>
+    val tags: Iterable<Tag>,
+    val reviews: MutableList<Review> = mutableListOf<Review>()
+)
+
+data class Review(
+    val username: String,
+    var text: String,
+    var date: LocalDateTime
 )
 
 data class SpokenLanguage(
