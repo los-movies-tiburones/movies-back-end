@@ -29,13 +29,13 @@ import javax.annotation.PostConstruct
 interface MovieService {
     fun findByTitle(title: String, pageRequest: PageRequest): List<MovieDTO>
     fun findAll(genres: Array<String>, field: String, pageRequest: PageRequest): List<MovieDTO>
-    fun findById(id: Int): Either<Throwable, MovieDescriptionDTO>
+    fun findById(id: Int, username: String): Either<Throwable, MovieDescriptionDTO>
     fun findTopRating(pageRequest: PageRequest): List<MovieDTO>
     fun findAllGenres(): List<String>
     fun findTopTenMoviesPerGenres(genres: Set<String>): Map<String, List<MovieDTO>?>
     fun saveRating(rating: Rating, movieId: Int)
     fun saveReview(id: Int, review: Review): Either<Throwable, Review>
-    fun findFavorites(username: String): Set<MovieFavorite>
+    fun findFavorites(username: String): List<MovieDTO>
     fun saveFavorite(id: Int, username: String): Either<Throwable, MovieFavorite>
     fun deleteFavorite(id: Int, username: String): Either<Throwable, Boolean>
 }
@@ -100,7 +100,7 @@ class MovieServiceImp constructor(
         }
     }
 
-    override fun findById(id: Int): Either<ResponseStatusException, MovieDescriptionDTO> {
+    override fun findById(id: Int, username: String): Either<ResponseStatusException, MovieDescriptionDTO> {
         val optionMovie = movieRepository.findById(id)
         return if (!optionMovie.isPresent) {
             Either.left(ResponseStatusException(HttpStatus.NOT_FOUND))
@@ -113,8 +113,11 @@ class MovieServiceImp constructor(
                     .getForObject<List<String>>(urlMovieRecommendations, movie.title)
                     .map { movieRepository.findByTitle(it).get() }
             }
-    
-            Either.right(movie.toMovieDescriptionDTO(recommendations))
+            val isInMyList = applicationUserRepository.findByUsername(username)
+                ?.moviesFavorites?.any { it.id == movie.id }
+                
+            val movieReturned = movie.toMovieDescriptionDTO(recommendations).copy(isInMyList = isInMyList ?: false)
+            Either.right(movieReturned)
         }
         
     }
@@ -168,9 +171,14 @@ class MovieServiceImp constructor(
         }
     }
     
-    override fun findFavorites(username: String): Set<MovieFavorite> {
+    override fun findFavorites(username: String): List<MovieDTO> {
         val user = applicationUserRepository.findByUsername(username)
-        return user?.moviesFavorites ?: throw UsernameNotFoundException(username)
+        return user?.moviesFavorites?.map {
+            movieRepository
+                .findById(it.id)
+                .get()
+                .toMovieDTO()
+        } ?: throw UsernameNotFoundException(username)
     }
     
     override fun saveFavorite(id: Int, username: String): Either<Throwable, MovieFavorite> {

@@ -33,7 +33,6 @@ class WebSecurity(
                     .antMatchers(HttpMethod.POST, SIGN_UP_URL).permitAll()
                     .antMatchers(HttpMethod.GET,
                         "/movies",
-                        "/movies/{id}",
                         "movies/genres",
                         "movies/top-rating",
                         "/actuator/**",

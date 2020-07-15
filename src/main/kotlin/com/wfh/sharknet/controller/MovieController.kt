@@ -50,8 +50,11 @@ class MovieController constructor(private val movieService: MovieService) {
     
     @GetMapping("{id}")
     @ApiOperation(value = "Find movie by id")
-    fun findById(@PathVariable id: Int): MovieDescriptionDTO =
-        movieService.findById(id).getOrHandle { throw it }
+    fun findById(
+        @PathVariable id: Int,
+        authentication: Authentication
+    ): MovieDescriptionDTO =
+        movieService.findById(id, authentication.principal.toString()).getOrHandle { throw it }
         
     @GetMapping("genres")
     @ApiOperation(value = "Find all genres available")
@@ -107,7 +110,7 @@ class MovieController constructor(private val movieService: MovieService) {
     @ApiOperation(value = "Find all favorite movies")
     fun findFavorites(
         authentication: Authentication
-    ): Set<MovieFavorite> = movieService.findFavorites(authentication.principal.toString())
+    ): List<MovieDTO> = movieService.findFavorites(authentication.principal.toString())
     
     @PostMapping("{id}/favorites")
     @ApiOperation(value = "Find all favorite movies")

@@ -17,6 +17,7 @@ data class MovieDescriptionDTO(
     val tmdbId: Int,
     val videoId: String?,
     val averageRating: Float,
+    val isInMyList: Boolean = false,
     val overview: String,
     val runtime: Short,
     val genres: Set<String>,
