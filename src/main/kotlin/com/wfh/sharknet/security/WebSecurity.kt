@@ -33,8 +33,8 @@ class WebSecurity(
                     .antMatchers(HttpMethod.POST, SIGN_UP_URL).permitAll()
                     .antMatchers(HttpMethod.GET,
                         "/movies",
-                        "movies/genres",
-                        "movies/top-rating",
+                        "/movies/genres",
+                        "/movies/top-rating",
                         "/actuator/**",
                         "/swagger**",
                         "/swagger-resources/**",
