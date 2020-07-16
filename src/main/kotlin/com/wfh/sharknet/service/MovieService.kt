@@ -111,7 +111,7 @@ class MovieServiceImp constructor(
             } else {
                 restTemplate
                     .getForObject<List<String>>(urlMovieRecommendations, movie.title)
-                    .map { movieRepository.findByTitle(it).get() }
+                    .map { movieRepository.findFirstByTitle(it).get() }
             }
             val isInMyList = applicationUserRepository.findByUsername(username)
                 ?.moviesFavorites?.any { it.id == movie.id }

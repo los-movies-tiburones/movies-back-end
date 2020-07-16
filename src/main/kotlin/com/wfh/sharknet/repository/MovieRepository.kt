@@ -1,6 +1,5 @@
 package com.wfh.sharknet.repository
 
-import arrow.core.Option
 import com.wfh.sharknet.dto.MovieDTO
 import com.wfh.sharknet.model.Movie
 import org.springframework.data.domain.Pageable
@@ -12,7 +11,7 @@ import java.util.*
 
 interface MovieRepository: PagingAndSortingRepository<Movie, Int> {
     
-    fun findByTitle(title: String): Optional<MovieDTO>
+    fun findFirstByTitle(title: String): Optional<MovieDTO>
     
     fun findByTitleContainsIgnoreCase(title: String, pageable: Pageable): List<MovieDTO>
     
